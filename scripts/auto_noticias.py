@@ -86,7 +86,8 @@ def redactar_con_ia(titulo_orig, resumen_orig, link):
     }).encode("utf-8")
 
     for modelo in MODELOS_GEMINI:
-        url = f"[https://generativelanguage.googleapis.com/v1beta/](https://generativelanguage.googleapis.com/v1beta/){modelo}:generateContent?key={GEMINI_API_KEY}"
+        base = "https" + "://generativelanguage.googleapis.com/v1beta/"
+        url = f"{base}{modelo}:generateContent?key={GEMINI_API_KEY}"
         req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
         try:
             print(f"Probando modelo: {modelo}")
