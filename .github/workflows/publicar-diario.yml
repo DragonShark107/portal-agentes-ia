@@ -1,9 +1,9 @@
 name: Publicar Noticia IA Automática
 
 on:
-  schedule:
-    # Se ejecuta todos los días a las 09:00 UTC (10:00 en España)
-    - cron: '0 9 * * *'
+  # schedule:
+  #   # Se ejecuta todos los días a las 09:00 UTC (10:00 en España)
+  #   - cron: '0 9 * * *'
   workflow_dispatch: # Te permite probarlo manualmente con un botón en GitHub
 
 permissions:

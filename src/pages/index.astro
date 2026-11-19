@@ -94,7 +94,7 @@ const restoNoticias = todasLasNoticias.filter((n) => n.id !== destacada?.id);
     <p class="text-slate-300 text-sm max-w-lg mx-auto mb-6">
       Cada domingo enviamos los mejores repositorios, modelos locales y guías de automatización directo a tu correo. Cero spam.
     </p>
-    <form name="newsletter" method="POST" data-netlify="true" class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+    <form id="newsletter-form" name="newsletter" method="POST" data-netlify="true" class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
       <input type="hidden" name="form-name" value="newsletter" />
       <input
         type="email"
@@ -107,5 +107,25 @@ const restoNoticias = todasLasNoticias.filter((n) => n.id !== destacada?.id);
         Suscribirme
       </button>
     </form>
+    <p id="newsletter-msg" class="hidden mt-4 text-sm font-medium text-emerald-400">
+      ¡Gracias por suscribirte! Te hemos añadido a la lista semanal.
+    </p>
   </section>
+
+  <script>
+    const newsForm = document.getElementById('newsletter-form') as HTMLFormElement | null;
+    const newsMsg = document.getElementById('newsletter-msg');
+
+    newsForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(newsForm);
+      await fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(formData as any).toString(),
+      });
+      newsForm.reset();
+      newsMsg?.classList.remove('hidden');
+    });
+  </script>
 </Layout>

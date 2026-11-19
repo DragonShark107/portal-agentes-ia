@@ -9,7 +9,12 @@ interface Props {
 
 const { title, description, ctaText, affiliateUrl, badge = 'Herramienta Recomendada' } = Astro.props;
 
-const esEnlaceRoto = !affiliateUrl || affiliateUrl === '#' || affiliateUrl.includes('tu-enlace-afiliado');
+const esEnlaceRoto =
+  !affiliateUrl ||
+  affiliateUrl === '#' ||
+  affiliateUrl.includes('tu-enlace') ||
+  affiliateUrl.includes('ejemplo.com');
+
 const enlaceFinal = esEnlaceRoto ? 'https://www.hostinger.es/vps-hosting' : affiliateUrl;
 ---
 

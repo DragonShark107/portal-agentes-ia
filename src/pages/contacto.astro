@@ -12,7 +12,7 @@ import Layout from '../layouts/Layout.astro';
       </a>.
     </p>
     
-    <form name="contacto" method="POST" data-netlify="true" class="space-y-4">
+    <form id="contacto-form" name="contacto" method="POST" data-netlify="true" class="space-y-4">
       <input type="hidden" name="form-name" value="contacto" />
       <div>
         <label class="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
@@ -30,5 +30,26 @@ import Layout from '../layouts/Layout.astro';
         Enviar mensaje
       </button>
     </form>
+
+    <p id="contacto-msg" class="hidden mt-4 p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium">
+      ¡Mensaje enviado correctamente! Te responderemos lo antes posible.
+    </p>
   </div>
+
+  <script>
+    const contactForm = document.getElementById('contacto-form') as HTMLFormElement | null;
+    const contactMsg = document.getElementById('contacto-msg');
+
+    contactForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(contactForm);
+      await fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(formData as any).toString(),
+      });
+      contactForm.reset();
+      contactMsg?.classList.remove('hidden');
+    });
+  </script>
 </Layout>
