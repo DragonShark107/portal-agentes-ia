@@ -26,6 +26,14 @@ def slugify(text):
     text = re.sub(r'[^a-z0-9\s-]', '', text)
     return re.sub(r'[\s-]+', '-', text)[:60].strip('-')
 
+def obtener_urls_publicadas(carpeta):
+    contenido_total = ""
+    for archivo in os.listdir(carpeta):
+        if archivo.endswith(".md"):
+            with open(os.path.join(carpeta, archivo), "r", encoding="utf-8") as f:
+                contenido_total += f.read() + "\n"
+    return contenido_total
+
 def obtener_candidatos_rss():
     candidatos = []
     for url in FEEDS_RSS:
@@ -36,7 +44,7 @@ def obtener_candidatos_rss():
             root = ET.fromstring(xml_data)
 
             items = root.findall(".//item") or root.findall(".//{http://www.w3.org/2005/Atom}entry")
-            for item in items[:5]:
+            for item in items[:6]:
                 title_el = item.find("title") if item.find("title") is not None else item.find("{http://www.w3.org/2005/Atom}title")
                 desc_el = item.find("description") if item.find("description") is not None else item.find("{http://www.w3.org/2005/Atom}summary")
                 link_el = item.find("link") if item.find("link") is not None else item.find("{http://www.w3.org/2005/Atom}link")
@@ -48,7 +56,7 @@ def obtener_candidatos_rss():
                 else:
                     link = url
 
-                if titulo:
+                if titulo and link:
                     candidatos.append((titulo, resumen[:800], link))
         except Exception as e:
             print(f"Aviso leyendo {url}: {e}")
@@ -71,7 +79,6 @@ def obtener_modelos_activos():
     except Exception as e:
         print(f"Aviso listando modelos: {e}")
 
-    # Priorizar modelos lite/rápidos primero
     modelos_validos.sort(key=lambda x: (0 if "lite" in x else 1, x), reverse=False)
     if not modelos_validos:
         modelos_validos = ["models/gemini-3.8-flash-lite", "models/gemini-3.8-flash", "models/gemini-3.5-flash"]
@@ -104,26 +111,18 @@ def redactar_con_ia(titulo_orig, resumen_orig, link):
     }).encode("utf-8")
 
     modelos = obtener_modelos_activos()
-    print("Modelos candidatos:", modelos)
-
     base = "https" + "://generativelanguage.googleapis.com/v1beta/"
     for modelo in modelos:
         url = f"{base}{modelo}:generateContent?key={GEMINI_API_KEY}"
         req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
         try:
-            print(f"Probando modelo: {modelo}")
             with urllib.request.urlopen(req, timeout=60) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 texto = data["candidates"][0]["content"]["parts"][0]["text"].strip()
                 texto = re.sub(r'^```json\s*|\s*```$', '', texto)
                 return json.loads(texto)
-        except urllib.error.HTTPError as e:
-            print(f"Aviso HTTP con {modelo}: {e.code}")
-            time.sleep(3)
-            continue
-        except Exception as e:
-            print(f"Aviso con {modelo}: {e}")
-            time.sleep(3)
+        except Exception:
+            time.sleep(2)
             continue
 
     raise RuntimeError("No se pudo generar la noticia con ninguno de los modelos disponibles.")
@@ -133,8 +132,9 @@ def main():
         print("Error: Falta la variable de entorno GEMINI_API_KEY")
         return
 
-    os.makedirs(os.path.join("src", "content", "noticias"), exist_ok=True)
-    archivos_existentes = os.listdir(os.path.join("src", "content", "noticias"))
+    carpeta = os.path.join("src", "content", "noticias")
+    os.makedirs(carpeta, exist_ok=True)
+    historial_publicado = obtener_urls_publicadas(carpeta)
 
     candidatos = obtener_candidatos_rss()
     if not candidatos:
@@ -142,14 +142,15 @@ def main():
         return
 
     for titulo_orig, resumen_orig, link in candidatos:
-        slug_base = slugify(titulo_orig)[:30]
-        if any(slug_base in archivo for archivo in archivos_existentes):
+        # Comprobación estricta: si la URL o la primera palabra clave ya están publicadas, saltar
+        palabra_clave = slugify(titulo_orig).split("-")[0]
+        if link in historial_publicado or (len(palabra_clave) > 4 and palabra_clave in historial_publicado.lower()):
             continue
 
         print(f"Procesando novedad: {titulo_orig}")
         articulo = redactar_con_ia(titulo_orig, resumen_orig, link)
         slug_final = slugify(articulo["title"])
-        ruta = os.path.join("src", "content", "noticias", f"{slug_final}.md")
+        ruta = os.path.join(carpeta, f"{slug_final}.md")
 
         if os.path.exists(ruta):
             continue
@@ -165,6 +166,7 @@ description: "{articulo['description'].replace('"', "'")}"
 pubDate: {fecha_hoy}
 category: "{categoria_valida}"
 featured: false
+sourceUrl: "{link}"
 affiliateTitle: "Despliega tus agentes de IA 24/7 en la nube"
 affiliateDesc: "Ejecuta modelos open-source y flujos automatizados en servidores VPS de alto rendimiento."
 affiliateUrl: "https://tu-enlace-de-afiliado.com"
