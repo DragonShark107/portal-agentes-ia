@@ -95,6 +95,7 @@ const restoNoticias = todasLasNoticias.filter((n) => n.id !== destacada?.id);
       Cada domingo enviamos los mejores repositorios, modelos locales y guías de automatización directo a tu correo. Cero spam.
     </p>
     <form name="newsletter" method="POST" data-netlify="true" class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+      <input type="hidden" name="form-name" value="newsletter" />
       <input
         type="email"
         name="email"

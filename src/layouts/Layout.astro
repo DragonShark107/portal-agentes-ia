@@ -66,12 +66,37 @@ const schemaData = isArticle
           <span class="px-2 py-0.5 bg-indigo-600 text-white rounded text-sm">IA</span>
           <span>Agentes<span class="text-indigo-600">Lab</span></span>
         </a>
-        <nav class="flex items-center gap-6 text-sm font-medium text-slate-600">
+
+        <!-- Menú escritorio (intacto en ordenador) -->
+        <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
           <a href="/" class="hover:text-indigo-600 transition-colors">Noticias</a>
           <a href="/sobre-nosotros" class="hover:text-indigo-600 transition-colors">Sobre nosotros</a>
           <a href="/contacto" class="hover:text-indigo-600 transition-colors">Contacto</a>
         </nav>
+
+        <!-- Botón hamburguesa (solo móvil) -->
+        <button
+          id="mobile-menu-btn"
+          type="button"
+          aria-label="Abrir menú"
+          aria-expanded="false"
+          class="md:hidden p-2 rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-slate-100 transition-colors cursor-pointer"
+        >
+          <svg id="icon-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <svg id="icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
+
+      <!-- Desplegable móvil -->
+      <nav id="mobile-menu" class="hidden md:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-2 text-sm font-medium text-slate-700 shadow-sm">
+        <a href="/" class="block py-2 px-3 rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors">Noticias</a>
+        <a href="/sobre-nosotros" class="block py-2 px-3 rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors">Sobre nosotros</a>
+        <a href="/contacto" class="block py-2 px-3 rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors">Contacto</a>
+      </nav>
     </header>
 
     <!-- Contenido Principal -->
@@ -92,5 +117,19 @@ const schemaData = isArticle
     </footer>
 
     <CookieBanner />
+
+    <script>
+      const btn = document.getElementById('mobile-menu-btn');
+      const menu = document.getElementById('mobile-menu');
+      const iconOpen = document.getElementById('icon-open');
+      const iconClose = document.getElementById('icon-close');
+
+      btn?.addEventListener('click', () => {
+        const isHidden = menu?.classList.toggle('hidden');
+        iconOpen?.classList.toggle('hidden', !isHidden);
+        iconClose?.classList.toggle('hidden', isHidden);
+        btn.setAttribute('aria-expanded', String(!isHidden));
+      });
+    </script>
   </body>
 </html>

@@ -8,6 +8,9 @@ interface Props {
 }
 
 const { title, description, ctaText, affiliateUrl, badge = 'Herramienta Recomendada' } = Astro.props;
+
+const esEnlaceRoto = !affiliateUrl || affiliateUrl === '#' || affiliateUrl.includes('tu-enlace-afiliado');
+const enlaceFinal = esEnlaceRoto ? 'https://www.hostinger.es/vps-hosting' : affiliateUrl;
 ---
 
 <div class="my-8 p-6 rounded-xl bg-gradient-to-r from-indigo-950 to-slate-900 text-white border border-indigo-500/30 shadow-lg">
@@ -17,7 +20,7 @@ const { title, description, ctaText, affiliateUrl, badge = 'Herramienta Recomend
   <h3 class="text-xl font-bold mb-2 text-white">{title}</h3>
   <p class="text-slate-300 text-sm mb-4 leading-relaxed">{description}</p>
   <a 
-    href={affiliateUrl} 
+    href={enlaceFinal} 
     target="_blank" 
     rel="nofollow sponsored noopener"
     class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-lg transition-colors"
