@@ -1,0 +1,65 @@
+---
+import { getCollection, render } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import AdSlot from '../../components/AdSlot.astro';
+import AffiliateBox from '../../components/AffiliateBox.astro';
+
+export async function getStaticPaths() {
+  const noticias = await getCollection('noticias');
+  return noticias.map((noticia) => ({
+    params: { id: noticia.id },
+    props: { noticia },
+  }));
+}
+
+const { noticia } = Astro.props;
+const { Content } = await render(noticia);
+---
+
+<Layout
+  title={noticia.data.title}
+  description={noticia.data.description}
+  publishDate={noticia.data.pubDate.toISOString()}
+  isArticle={true}
+>
+  <article class="max-w-3xl mx-auto bg-white rounded-2xl border border-slate-200 p-6 md:p-10 shadow-sm">
+    <header class="mb-8 pb-6 border-b border-slate-200">
+      <div class="flex items-center gap-3 text-xs font-medium text-slate-500 mb-3">
+        <a href="/" class="text-indigo-600 hover:underline">← Volver a noticias</a>
+        <span>•</span>
+        <span class="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 rounded font-semibold">{noticia.data.category}</span>
+        <span>•</span>
+        <time datetime={noticia.data.pubDate.toISOString()}>
+          {noticia.data.pubDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+        </time>
+      </div>
+      <h1 class="text-2xl md:text-4xl font-extrabold text-slate-900 leading-tight mb-4">
+        {noticia.data.title}
+      </h1>
+      <p class="text-lg text-slate-600 leading-relaxed">
+        {noticia.data.description}
+      </p>
+    </header>
+
+    <!-- Anuncio Superior en Artículo -->
+    <AdSlot slotName="Inicio Artículo" format="horizontal" />
+
+    <!-- Contenido Markdown de la noticia -->
+    <div class="space-y-4 text-slate-800 leading-relaxed [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mt-8 [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:mt-6 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mb-1.5 [&_strong]:font-semibold [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm">
+      <Content />
+    </div>
+
+    <!-- Caja de Afiliados Contextual (si la noticia tiene datos de afiliado) -->
+    {noticia.data.affiliateTitle && noticia.data.affiliateUrl && (
+      <AffiliateBox
+        title={noticia.data.affiliateTitle}
+        description={noticia.data.affiliateDesc || ''}
+        ctaText={noticia.data.affiliateCta || 'Ver herramienta'}
+        affiliateUrl={noticia.data.affiliateUrl}
+      />
+    )}
+
+    <!-- Anuncio Final en Artículo -->
+    <AdSlot slotName="Fin Artículo" format="rectangle" />
+  </article>
+</Layout>

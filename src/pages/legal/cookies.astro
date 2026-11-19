@@ -1,0 +1,44 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Política de Cookies" description="Información sobre el uso de cookies técnicas, analíticas y publicitarias en AgentesIA Lab.">
+  <article class="max-w-3xl mx-auto bg-white rounded-2xl border border-slate-200 p-8 shadow-sm space-y-5 text-slate-700 leading-relaxed">
+    <h1 class="text-3xl font-extrabold text-slate-900">Política de Cookies</h1>
+    <p class="text-xs text-slate-400">Última actualización: noviembre de 2026</p>
+
+    <h2 class="text-xl font-bold text-slate-900 pt-2">1. ¿Qué son las cookies?</h2>
+    <p>
+      Las cookies y tecnologías similares (como el almacenamiento local <code>localStorage</code>) son pequeños archivos de datos que se guardan en tu navegador cuando visitas una página web. Sirven para recordar tus preferencias, analizar el tráfico o mostrar publicidad relevante.
+    </p>
+
+    <h2 class="text-xl font-bold text-slate-900 pt-2">2. Tipos de cookies utilizadas en este sitio</h2>
+    <ul class="list-disc pl-6 space-y-2">
+      <li><strong>Cookies técnicas o necesarias:</strong> Permiten la navegación básica y guardan tu elección sobre el consentimiento de cookies para no volver a mostrarte el aviso en cada visita.</li>
+      <li><strong>Cookies de análisis:</strong> Nos permiten medir de forma agregada el número de visitas, los artículos más leídos y el rendimiento de la web para mejorar nuestros contenidos.</li>
+      <li><strong>Cookies publicitarias (Google AdSense):</strong> Proveedores externos, incluido Google, utilizan cookies para mostrar anuncios relevantes basados en las visitas anteriores del usuario a este u otros sitios web.</li>
+    </ul>
+
+    <h2 class="text-xl font-bold text-slate-900 pt-2">3. Cómo gestionar o revocar tu consentimiento</h2>
+    <p>
+      Puedes configurar tu navegador para bloquear o eliminar las cookies en cualquier momento, o bien restablecer tu preferencia en nuestra web pulsando el siguiente botón:
+    </p>
+
+    <div class="pt-2">
+      <button
+        id="reset-cookie-consent"
+        type="button"
+        class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+      >
+        Volver a configurar preferencias de cookies
+      </button>
+    </div>
+  </article>
+
+  <script>
+    document.getElementById('reset-cookie-consent')?.addEventListener('click', () => {
+      localStorage.removeItem('cookie_consent');
+      window.location.reload();
+    });
+  </script>
+</Layout>

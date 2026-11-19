@@ -1,11 +1,110 @@
 ---
-import Welcome from '../components/Welcome.astro';
+import { getCollection } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
+import AdSlot from '../components/AdSlot.astro';
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+const todasLasNoticias = (await getCollection('noticias')).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+
+const destacada = todasLasNoticias.find((n) => n.data.featured) || todasLasNoticias[0];
+const restoNoticias = todasLasNoticias.filter((n) => n.id !== destacada?.id);
 ---
 
-<Layout>
-	<Welcome />
+<Layout title="Noticias sobre Agentes de IA Autónomos y Modelos Locales">
+  <!-- Cabecera Hero -->
+  <section class="mb-10">
+    <span class="inline-block px-3 py-1 text-xs font-semibold bg-indigo-100 text-indigo-700 rounded-full mb-3">
+      Actualidad Técnica · IA Autónómica
+    </span>
+    <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 mb-3">
+      Agentes de IA, Automatización y Modelos Locales
+    </h1>
+    <p class="text-slate-600 text-lg max-w-2xl">
+      Análisis práctico, frameworks open-source y guías para desplegar agentes autónomos sin depender de suscripciones cerradas.
+    </p>
+  </section>
+
+  <!-- Noticia Destacada -->
+  {destacada && (
+    <article class="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm mb-10 hover:border-indigo-300 transition-colors">
+      <div class="flex items-center gap-3 text-xs font-medium text-slate-500 mb-3">
+        <span class="px-2.5 py-0.5 bg-indigo-600 text-white rounded font-semibold">Destacado</span>
+        <span>{destacada.data.category}</span>
+        <span>•</span>
+        <time datetime={destacada.data.pubDate.toISOString()}>
+          {destacada.data.pubDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </time>
+      </div>
+      <h2 class="text-2xl md:text-3xl font-bold text-slate-900 mb-3">
+        <a href={`/noticias/${destacada.id}`} class="hover:text-indigo-600 transition-colors">
+          {destacada.data.title}
+        </a>
+      </h2>
+      <p class="text-slate-600 mb-5 leading-relaxed">{destacada.data.description}</p>
+      <a href={`/noticias/${destacada.id}`} class="inline-flex items-center font-semibold text-sm text-indigo-600 hover:text-indigo-700">
+        Leer análisis completo →
+      </a>
+    </article>
+  )}
+
+  <!-- Bloque de Publicidad Portada -->
+  <AdSlot slotName="Banner Portada" format="horizontal" />
+
+  <!-- Últimas Noticias -->
+  <section class="mt-10">
+    <h2 class="text-xl font-bold text-slate-900 mb-6 pb-2 border-b border-slate-200">
+      Últimas publicaciones
+    </h2>
+    {restoNoticias.length > 0 ? (
+      <div class="grid md:grid-cols-2 gap-6">
+        {restoNoticias.map((noticia) => (
+          <article class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                <span class="font-semibold text-indigo-600">{noticia.data.category}</span>
+                <span>•</span>
+                <time datetime={noticia.data.pubDate.toISOString()}>
+                  {noticia.data.pubDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </time>
+              </div>
+              <h3 class="text-lg font-bold text-slate-900 mb-2">
+                <a href={`/noticias/${noticia.id}`} class="hover:text-indigo-600 transition-colors">
+                  {noticia.data.title}
+                </a>
+              </h3>
+              <p class="text-sm text-slate-600 line-clamp-3 mb-4">{noticia.data.description}</p>
+            </div>
+            <a href={`/noticias/${noticia.id}`} class="text-xs font-semibold text-indigo-600 hover:underline">
+              Leer artículo →
+            </a>
+          </article>
+        ))}
+      </div>
+    ) : (
+      <p class="text-sm text-slate-500 bg-white p-6 rounded-xl border border-slate-200">
+        Pronto añadiremos más artículos aquí. Crea nuevos archivos <code>.md</code> en <code>src/content/noticias/</code> para verlos aparecer automáticamente.
+      </p>
+    )}
+  </section>
+
+  <!-- Captación de Newsletter (Netlify Forms) -->
+  <section class="mt-14 bg-slate-900 text-white rounded-2xl p-8 text-center">
+    <h2 class="text-2xl font-bold mb-2">Recibe el resumen semanal de Agentes IA</h2>
+    <p class="text-slate-300 text-sm max-w-lg mx-auto mb-6">
+      Cada domingo enviamos los mejores repositorios, modelos locales y guías de automatización directo a tu correo. Cero spam.
+    </p>
+    <form name="newsletter" method="POST" data-netlify="true" class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+      <input
+        type="email"
+        name="email"
+        required
+        placeholder="tu@email.com"
+        class="flex-grow px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-indigo-500"
+      />
+      <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm rounded-lg transition-colors cursor-pointer">
+        Suscribirme
+      </button>
+    </form>
+  </section>
 </Layout>

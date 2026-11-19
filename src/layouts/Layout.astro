@@ -1,23 +1,96 @@
-<!doctype html>
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
-	</head>
-	<body>
-		<slot />
-	</body>
-</html>
+---
+import '../styles/global.css';
+import CookieBanner from '../components/CookieBanner.astro';
 
-<style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
-</style>
+interface Props {
+  title: string;
+  description?: string;
+  image?: string;
+  publishDate?: string;
+  isArticle?: boolean;
+}
+
+const {
+  title,
+  description = 'Noticias, análisis técnico y guías sobre Agentes de IA Autónomos, modelos locales (SLMs) y automatización.',
+  image = '/og-default.jpg',
+  publishDate,
+  isArticle = false,
+} = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+
+const schemaData = isArticle
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'NewsArticle',
+      headline: title,
+      description: description,
+      image: [new URL(image, Astro.site).toString()],
+      datePublished: publishDate,
+      dateModified: publishDate,
+      author: [{ '@type': 'Organization', name: 'AgentesIA Lab', url: Astro.site }],
+    }
+  : {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'AgentesIA Lab',
+      url: Astro.site,
+    };
+---
+
+<!doctype html>
+<html lang="es" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="canonical" href={canonicalURL} />
+    <title>{title} | AgentesIA Lab</title>
+    <meta name="description" content={description} />
+
+    <!-- Open Graph / Redes Sociales -->
+    <meta property="og:type" content={isArticle ? 'article' : 'website'} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={new URL(image, Astro.site)} />
+
+    <!-- Datos Estructurados SEO (Schema.org) -->
+    <script type="application/ld+json" set:html={JSON.stringify(schemaData)} />
+  </head>
+  <body class="bg-slate-50 text-slate-900 antialiased flex flex-col min-h-screen">
+    <!-- Cabecera -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
+      <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-2 font-extrabold text-xl tracking-tight text-slate-900">
+          <span class="px-2 py-0.5 bg-indigo-600 text-white rounded text-sm">IA</span>
+          <span>Agentes<span class="text-indigo-600">Lab</span></span>
+        </a>
+        <nav class="flex items-center gap-6 text-sm font-medium text-slate-600">
+          <a href="/" class="hover:text-indigo-600 transition-colors">Noticias</a>
+          <a href="/sobre-nosotros" class="hover:text-indigo-600 transition-colors">Sobre nosotros</a>
+          <a href="/contacto" class="hover:text-indigo-600 transition-colors">Contacto</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="flex-grow max-w-5xl w-full mx-auto px-4 py-8">
+      <slot />
+    </main>
+
+    <!-- Pie de página (Enlaces obligatorios para AdSense y RGPD) -->
+    <footer class="bg-slate-900 text-slate-400 text-sm mt-16 border-t border-slate-800">
+      <div class="max-w-5xl mx-auto px-4 py-10 flex flex-col md:flex-row justify-between items-center gap-4">
+        <p>© {new Date().getFullYear()} AgentesIA Lab. Todos los derechos reservados.</p>
+        <div class="flex flex-wrap gap-5 text-xs">
+          <a href="/legal/aviso-legal" class="hover:text-white">Aviso Legal</a>
+          <a href="/legal/privacidad" class="hover:text-white">Política de Privacidad</a>
+          <a href="/legal/cookies" class="hover:text-white">Política de Cookies</a>
+        </div>
+      </div>
+    </footer>
+
+    <CookieBanner />
+  </body>
+</html>
