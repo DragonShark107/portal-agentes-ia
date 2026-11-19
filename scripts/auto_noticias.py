@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import time
 import urllib.request
 import urllib.error
 import xml.etree.ElementTree as ET
@@ -9,15 +10,9 @@ from datetime import datetime
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 FEEDS_RSS = [
-    "https://huggingface.co/blog/feed.xml",
-    "https://simonwillison.net/atom/everything/",
-    "https://openai.com/news/rss.xml"
-]
-
-MODELOS_GEMINI = [
-    "models/gemini-3.8-flash",
-    "models/gemini-3.5-flash",
-    "models/gemini-3.0-flash"
+    "https" + "://huggingface.co/blog/feed.xml",
+    "https" + "://simonwillison.net/atom/everything/",
+    "https" + "://openai.com/news/rss.xml"
 ]
 
 def slugify(text):
@@ -54,56 +49,84 @@ def obtener_candidatos_rss():
                     link = url
 
                 if titulo:
-                    candidatos.append((titulo, resumen[:1000], link))
+                    candidatos.append((titulo, resumen[:800], link))
         except Exception as e:
             print(f"Aviso leyendo {url}: {e}")
     return candidatos
 
+def obtener_modelos_activos():
+    base = "https" + "://generativelanguage.googleapis.com/v1beta/models"
+    url_models = f"{base}?key={GEMINI_API_KEY}"
+    modelos_validos = []
+    try:
+        req = urllib.request.Request(url_models)
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            for m in data.get("models", []):
+                nombre = m.get("name", "")
+                metodos = m.get("supportedGenerationMethods", [])
+                if "generateContent" in metodos and ("flash" in nombre or "lite" in nombre):
+                    if not any(v in nombre for v in ["1.5", "2.0", "2.5"]):
+                        modelos_validos.append(nombre)
+    except Exception as e:
+        print(f"Aviso listando modelos: {e}")
+
+    # Priorizar modelos lite/rápidos primero
+    modelos_validos.sort(key=lambda x: (0 if "lite" in x else 1, x), reverse=False)
+    if not modelos_validos:
+        modelos_validos = ["models/gemini-3.8-flash-lite", "models/gemini-3.8-flash", "models/gemini-3.5-flash"]
+    return modelos_validos
+
 def redactar_con_ia(titulo_orig, resumen_orig, link):
     prompt = f"""
     Actúa como redactor técnico experto en Agentes de IA Autónomos, Modelos Locales y Automatización.
-    Basándote en esta novedad real del sector:
-    Título original: {titulo_orig}
+    Basándote en esta novedad real:
+    Título: {titulo_orig}
     Contexto: {resumen_orig}
-    Enlace de referencia: {link}
+    Fuente: {link}
 
-    Redacta una noticia original, técnica, útil y bien estructurada en español (entre 350 y 500 palabras).
-    Incluye al final un enlace de referencia a la fuente original usando Markdown: [Fuente oficial]({link}).
-    Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta (sin bloques ```json):
+    Redacta una noticia clara y directa en español (unas 300 palabras).
+    Incluye al final: [Fuente oficial]({link}).
+    Devuelve ÚNICAMENTE un JSON válido con esta estructura:
     {{
-      "title": "Titular atractivo y optimizado para SEO en español (sin comillas dobles)",
-      "description": "Meta descripción SEO clara de 140 caracteres máximo",
+      "title": "Titular SEO en español sin comillas dobles",
+      "description": "Meta descripción SEO de 140 caracteres máximo",
       "category": "Una de estas exactas: Agentes Autónomos | Modelos Locales | Automatización | Herramientas",
-      "content": "Cuerpo del artículo en Markdown usando ## para subtítulos y listas con *"
+      "content": "Cuerpo en Markdown usando ## para subtítulos y listas con *"
     }}
     """
     payload = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "responseMimeType": "application/json",
-            "thinkingConfig": {"thinkingBudget": 0}
+            "maxOutputTokens": 1200
         }
     }).encode("utf-8")
 
-    for modelo in MODELOS_GEMINI:
-        base = "https" + "://generativelanguage.googleapis.com/v1beta/"
+    modelos = obtener_modelos_activos()
+    print("Modelos candidatos:", modelos)
+
+    base = "https" + "://generativelanguage.googleapis.com/v1beta/"
+    for modelo in modelos:
         url = f"{base}{modelo}:generateContent?key={GEMINI_API_KEY}"
         req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
         try:
             print(f"Probando modelo: {modelo}")
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 texto = data["candidates"][0]["content"]["parts"][0]["text"].strip()
                 texto = re.sub(r'^```json\s*|\s*```$', '', texto)
                 return json.loads(texto)
         except urllib.error.HTTPError as e:
-            print(f"Aviso HTTP con {modelo}: {e.read().decode('utf-8')}")
+            print(f"Aviso HTTP con {modelo}: {e.code}")
+            time.sleep(3)
             continue
         except Exception as e:
             print(f"Aviso con {modelo}: {e}")
+            time.sleep(3)
             continue
 
-    raise RuntimeError("No se pudo generar la noticia con ninguno de los modelos configurados.")
+    raise RuntimeError("No se pudo generar la noticia con ninguno de los modelos disponibles.")
 
 def main():
     if not GEMINI_API_KEY:
@@ -144,7 +167,7 @@ category: "{categoria_valida}"
 featured: false
 affiliateTitle: "Despliega tus agentes de IA 24/7 en la nube"
 affiliateDesc: "Ejecuta modelos open-source y flujos automatizados en servidores VPS de alto rendimiento."
-affiliateUrl: "[https://tu-enlace-de-afiliado.com](https://tu-enlace-de-afiliado.com)"
+affiliateUrl: "https://tu-enlace-de-afiliado.com"
 affiliateCta: "Ver servidores recomendados"
 ---
 
