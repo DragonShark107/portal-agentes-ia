@@ -36,7 +36,7 @@ def obtener_candidatos_rss():
     for url in FEEDS_RSS:
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=15) as response:
+            with urllib.request.urlopen(req, timeout=20) as response:
                 xml_data = response.read()
             root = ET.fromstring(xml_data)
 
@@ -77,20 +77,29 @@ def redactar_con_ia(titulo_orig, resumen_orig, link):
       "content": "Cuerpo del artículo en Markdown usando ## para subtítulos y listas con *"
     }}
     """
-    payload = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode("utf-8")
+    payload = json.dumps({
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "thinkingConfig": {"thinkingBudget": 0}
+        }
+    }).encode("utf-8")
 
     for modelo in MODELOS_GEMINI:
-        url = f"https://generativelanguage.googleapis.com/v1beta/{modelo}:generateContent?key={GEMINI_API_KEY}"
+        url = f"[https://generativelanguage.googleapis.com/v1beta/](https://generativelanguage.googleapis.com/v1beta/){modelo}:generateContent?key={GEMINI_API_KEY}"
         req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
         try:
             print(f"Probando modelo: {modelo}")
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=120) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 texto = data["candidates"][0]["content"]["parts"][0]["text"].strip()
                 texto = re.sub(r'^```json\s*|\s*```$', '', texto)
                 return json.loads(texto)
         except urllib.error.HTTPError as e:
-            print(f"Aviso con {modelo}: {e.read().decode('utf-8')}")
+            print(f"Aviso HTTP con {modelo}: {e.read().decode('utf-8')}")
+            continue
+        except Exception as e:
+            print(f"Aviso con {modelo}: {e}")
             continue
 
     raise RuntimeError("No se pudo generar la noticia con ninguno de los modelos configurados.")
