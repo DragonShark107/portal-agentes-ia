@@ -14,6 +14,12 @@ FEEDS_RSS = [
     "https://openai.com/news/rss.xml"
 ]
 
+MODELOS_GEMINI = [
+    "models/gemini-3.8-flash",
+    "models/gemini-3.5-flash",
+    "models/gemini-3.0-flash"
+]
+
 def slugify(text):
     text = text.lower().strip()
     text = re.sub(r'[áàäâ]', 'a', text)
@@ -53,22 +59,7 @@ def obtener_candidatos_rss():
             print(f"Aviso leyendo {url}: {e}")
     return candidatos
 
-def obtener_modelo_disponible():
-    url_models = f"https://generativelanguage.googleapis.com/v1beta/models?key={GEMINI_API_KEY}"
-    req = urllib.request.Request(url_models)
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-        for m in data.get("models", []):
-            nombre = m.get("name", "")
-            metodos = m.get("supportedGenerationMethods", [])
-            if "generateContent" in metodos and "flash" in nombre:
-                return nombre
-    return "models/gemini-2.0-flash"
-
 def redactar_con_ia(titulo_orig, resumen_orig, link):
-    modelo = obtener_modelo_disponible()
-    print(f"Usando modelo: {modelo}")
-    url = f"https://generativelanguage.googleapis.com/v1beta/{modelo}:generateContent?key={GEMINI_API_KEY}"
     prompt = f"""
     Actúa como redactor técnico experto en Agentes de IA Autónomos, Modelos Locales y Automatización.
     Basándote en esta novedad real del sector:
@@ -87,16 +78,22 @@ def redactar_con_ia(titulo_orig, resumen_orig, link):
     }}
     """
     payload = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode("utf-8")
-    req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            texto = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-            texto = re.sub(r'^```json\s*|\s*```$', '', texto)
-            return json.loads(texto)
-    except urllib.error.HTTPError as e:
-        print("Detalle error API:", e.read().decode("utf-8"))
-        raise
+
+    for modelo in MODELOS_GEMINI:
+        url = f"[https://generativelanguage.googleapis.com/v1beta/](https://generativelanguage.googleapis.com/v1beta/){modelo}:generateContent?key={GEMINI_API_KEY}"
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+        try:
+            print(f"Probando modelo: {modelo}")
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                texto = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                texto = re.sub(r'^```json\s*|\s*```$', '', texto)
+                return json.loads(texto)
+        except urllib.error.HTTPError as e:
+            print(f"Aviso con {modelo}: {e.read().decode('utf-8')}")
+            continue
+
+    raise RuntimeError("No se pudo generar la noticia con ninguno de los modelos configurados.")
 
 def main():
     if not GEMINI_API_KEY:
