@@ -5,11 +5,14 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
-# Clave API gratuita de Google Gemini (la guardarás en GitHub Secrets)
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-# Fuente RSS real de noticias de IA / Tecnología
-RSS_URL = "https://huggingface.co/blog/feed.xml"
+# Varias fuentes reales sobre Agentes de IA y Open Source
+FEEDS_RSS = [
+    "https://huggingface.co/blog/feed.xml",
+    "https://hnrss.org/newest?q=AI+agent+OR+LLM&points=50",
+    "https://simonwillison.net/atom/everything/"
+]
 
 def slugify(text):
     text = text.lower().strip()
@@ -20,34 +23,53 @@ def slugify(text):
     text = re.sub(r'[úùüû]', 'u', text)
     text = re.sub(r'[ñ]', 'n', text)
     text = re.sub(r'[^a-z0-9\s-]', '', text)
-    return re.sub(r'[\s-]+', '-', text)[:60]
+    return re.sub(r'[\s-]+', '-', text)[:60].strip('-')
 
-def obtener_ultima_noticia_rss():
-    req = urllib.request.Request(RSS_URL, headers={'User-Agent': 'Mozilla/5.0'})
-    with urllib.request.urlopen(req, timeout=15) as response:
-        xml_data = response.read()
-    root = ET.fromstring(xml_data)
-    item = root.find(".//item")
-    titulo = item.find("title").text
-    descripcion = item.find("description").text or ""
-    link = item.find("link").text
-    return titulo, descripcion[:1000], link
+def obtener_candidatos_rss():
+    candidatos = []
+    for url in FEEDS_RSS:
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=15) as response:
+                xml_data = response.read()
+            root = ET.fromstring(xml_data)
+
+            # Soporte tanto para RSS (<item>) como para Atom (<entry>)
+            items = root.findall(".//item") or root.findall(".//{http://www.w3.org/2005/Atom}entry")
+            for item in items[:5]:
+                title_el = item.find("title") if item.find("title") is not None else item.find("{http://www.w3.org/2005/Atom}title")
+                desc_el = item.find("description") if item.find("description") is not None else item.find("{http://www.w3.org/2005/Atom}summary")
+                link_el = item.find("link") if item.find("link") is not None else item.find("{http://www.w3.org/2005/Atom}link")
+
+                titulo = title_el.text.strip() if (title_el is not None and title_el.text) else ""
+                resumen = desc_el.text.strip() if (desc_el is not None and desc_el.text) else titulo
+                if link_el is not None:
+                    link = link_el.text.strip() if link_el.text else link_el.attrib.get("href", "")
+                else:
+                    link = url
+
+                if titulo:
+                    candidatos.append((titulo, resumen[:1000], link))
+        except Exception as e:
+            print(f"Aviso leyendo {url}: {e}")
+    return candidatos
 
 def redactar_con_ia(titulo_orig, resumen_orig, link):
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     prompt = f"""
-    Actúa como redactor técnico experto en Agentes de IA Autónomos y Modelos Locales.
-    Basándote en esta novedad real:
-    Título: {titulo_orig}
-    Resumen: {resumen_orig}
-    Fuente: {link}
+    Actúa como redactor técnico experto en Agentes de IA Autónomos, Modelos Locales y Automatización.
+    Basándote en esta novedad real del sector:
+    Título original: {titulo_orig}
+    Contexto: {resumen_orig}
+    Enlace de referencia: {link}
 
-    Redacta una noticia original, clara y bien estructurada en español (unos 400 palabras).
-    Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta (sin bloques markdown ```json):
+    Redacta una noticia original, técnica, útil y bien estructurada en español (entre 350 y 500 palabras).
+    Incluye al final un enlace de referencia a la fuente original usando Markdown: [Fuente oficial]({link}).
+    Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta (sin bloques ```json):
     {{
-      "title": "Titular atractivo y SEO en español (sin comillas dobles internas)",
-      "description": "Meta descripción SEO de 140 caracteres máximo",
-      "category": "Una de estas: Agentes Autónomos | Modelos Locales | Automatización | Herramientas",
+      "title": "Titular atractivo y optimizado para SEO en español (sin comillas dobles)",
+      "description": "Meta descripción SEO clara de 140 caracteres máximo",
+      "category": "Una de estas exactas: Agentes Autónomos | Modelos Locales | Automatización | Herramientas",
       "content": "Cuerpo del artículo en Markdown usando ## para subtítulos y listas con *"
     }}
     """
@@ -61,25 +83,40 @@ def redactar_con_ia(titulo_orig, resumen_orig, link):
 
 def main():
     if not GEMINI_API_KEY:
-        print("Falta GEMINI_API_KEY")
+        print("Error: Falta la variable de entorno GEMINI_API_KEY")
         return
 
-    titulo_orig, resumen_orig, link = obtener_ultima_noticia_rss()
-    articulo = redactar_con_ia(titulo_orig, resumen_orig, link)
+    os.makedirs(os.path.join("src", "content", "noticias"), exist_ok=True)
+    archivos_existentes = os.listdir(os.path.join("src", "content", "noticias"))
 
-    slug = slugify(articulo["title"])
-    ruta = os.path.join("src", "content", "noticias", f"{slug}.md")
-
-    if os.path.exists(ruta):
-        print("La noticia ya existe, no se duplica.")
+    candidatos = obtener_candidatos_rss()
+    if not candidatos:
+        print("No se pudieron obtener noticias de los feeds.")
         return
 
-    fecha_hoy = datetime.now().strftime("%Y-%m-%d")
-    md_final = f"""---
+    for titulo_orig, resumen_orig, link in candidatos:
+        slug_base = slugify(titulo_orig)[:30]
+        if any(slug_base in archivo for archivo in archivos_existentes):
+            continue
+
+        print(f"Procesando novedad: {titulo_orig}")
+        articulo = redactar_con_ia(titulo_orig, resumen_orig, link)
+        slug_final = slugify(articulo["title"])
+        ruta = os.path.join("src", "content", "noticias", f"{slug_final}.md")
+
+        if os.path.exists(ruta):
+            continue
+
+        categoria_valida = articulo.get("category", "Agentes Autónomos")
+        if categoria_valida not in ["Agentes Autónomos", "Modelos Locales", "Automatización", "Herramientas"]:
+            categoria_valida = "Agentes Autónomos"
+
+        fecha_hoy = datetime.now().strftime("%Y-%m-%d")
+        md_final = f"""---
 title: "{articulo['title'].replace('"', "'")}"
 description: "{articulo['description'].replace('"', "'")}"
 pubDate: {fecha_hoy}
-category: "{articulo['category']}"
+category: "{categoria_valida}"
 featured: false
 affiliateTitle: "Despliega tus agentes de IA 24/7 en la nube"
 affiliateDesc: "Ejecuta modelos open-source y flujos automatizados en servidores VPS de alto rendimiento."
@@ -89,10 +126,12 @@ affiliateCta: "Ver servidores recomendados"
 
 {articulo['content']}
 """
-    os.makedirs(os.path.dirname(ruta), exist_ok=True)
-    with open(ruta, "w", encoding="utf-8") as f:
-        f.write(md_final)
-    print(f"✅ Publicada automáticamente: {ruta}")
+        with open(ruta, "w", encoding="utf-8") as f:
+            f.write(md_final)
+        print(f"✅ Publicada automáticamente: {ruta}")
+        return
+
+    print("Todas las novedades recientes ya estaban publicadas.")
 
 if __name__ == "__main__":
     main()
