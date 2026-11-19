@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import sitemap from '@astrojs/sitemap';
 
 export default defineConfig({
-  site: 'https://agentesia-noticias.netlify.app', // Cámbialo cuando compres tu dominio propio
+  site: 'https://labagentes.com', // Cámbialo cuando compres tu dominio propio
   vite: {
     plugins: [tailwindcss()]
   },
