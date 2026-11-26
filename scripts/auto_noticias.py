@@ -8,14 +8,16 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-NOTICIAS_POR_EJECUCION = 3  # Número de noticias a generar por cada carga en Netlify
+NOTICIAS_POR_EJECUCION = 8  # Número de noticias a generar por cada carga en Netlify
 
 FEEDS_RSS = [
     "https://huggingface.co/blog/feed.xml",
     "https://simonwillison.net/atom/everything/",
     "https://openai.com/news/rss.xml",
     "https://blog.langchain.dev/rss/",
-    "https://ollama.com/blog/rss.xml"
+    "https://ollama.com/blog/rss.xml",
+    "https://blog.google/technology/ai/rss/",
+    "https://www.anthropic.com/news/rss.xml"
 ]
 
 def slugify(text):
@@ -194,7 +196,7 @@ affiliateCta: "Ver servidores recomendados"
         historial_publicado += f"\n{link}\n{titulo_orig}\n{md_final}"
         publicadas_hoy += 1
         print(f"✅ Publicada ({publicadas_hoy}/{NOTICIAS_POR_EJECUCION}): {ruta}")
-        time.sleep(3)
+        time.sleep(5)
 
     if publicadas_hoy == 0:
         print("Todas las novedades recientes ya estaban publicadas.")
