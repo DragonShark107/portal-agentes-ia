@@ -1,9 +1,9 @@
-name: Publicar Noticia IA Automática
+name: Publicar Noticias IA Automáticas
 
 on:
-  # schedule:
-  #   # Se ejecuta todos los días a las 09:00 UTC (10:00 en España)
-  #   - cron: '0 9 * * *'
+  schedule:
+    # Se ejecuta cada 2 días a las 09:00 UTC (10:00 en España)
+    - cron: '0 9 */2 * *'
   workflow_dispatch: # Te permite probarlo manualmente con un botón en GitHub
 
 permissions:
@@ -26,9 +26,9 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/auto_noticias.py
 
-      - name: Subir nueva noticia al repositorio
+      - name: Subir nuevas noticias al repositorio
         run: |
           git config --local user.email "bot@agentesialab.com"
           git config --local user.name "AgentesIA Bot"
           git add src/content/noticias/
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Nueva noticia automática" && git push)
+          git diff --quiet && git diff-staged --quiet || (git commit -m "Nuevas noticias automáticas" && git push)

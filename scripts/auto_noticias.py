@@ -8,11 +8,14 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+NOTICIAS_POR_EJECUCION = 3  # Número de noticias a generar por cada carga en Netlify
 
 FEEDS_RSS = [
-    "https" + "://huggingface.co/blog/feed.xml",
-    "https" + "://simonwillison.net/atom/everything/",
-    "https" + "://openai.com/news/rss.xml"
+    "https://huggingface.co/blog/feed.xml",
+    "https://simonwillison.net/atom/everything/",
+    "https://openai.com/news/rss.xml",
+    "https://blog.langchain.dev/rss/",
+    "https://ollama.com/blog/rss.xml"
 ]
 
 def slugify(text):
@@ -44,7 +47,7 @@ def obtener_candidatos_rss():
             root = ET.fromstring(xml_data)
 
             items = root.findall(".//item") or root.findall(".//{http://www.w3.org/2005/Atom}entry")
-            for item in items[:6]:
+            for item in items[:8]:
                 title_el = item.find("title") if item.find("title") is not None else item.find("{http://www.w3.org/2005/Atom}title")
                 desc_el = item.find("description") if item.find("description") is not None else item.find("{http://www.w3.org/2005/Atom}summary")
                 link_el = item.find("link") if item.find("link") is not None else item.find("{http://www.w3.org/2005/Atom}link")
@@ -63,7 +66,7 @@ def obtener_candidatos_rss():
     return candidatos
 
 def obtener_modelos_activos():
-    base = "https" + "://generativelanguage.googleapis.com/v1beta/models"
+    base = "https://generativelanguage.googleapis.com/v1beta/models"
     url_models = f"{base}?key={GEMINI_API_KEY}"
     modelos_validos = []
     try:
@@ -92,7 +95,7 @@ def redactar_con_ia(titulo_orig, resumen_orig, link):
     Contexto: {resumen_orig}
     Fuente: {link}
 
-    Redacta una noticia clara y directa en español (unas 300 palabras).
+    Redacta una noticia clara, original y directa en español (entre 350 y 450 palabras) para posicionar bien en Google.
     Incluye al final: [Fuente oficial]({link}).
     Devuelve ÚNICAMENTE un JSON válido con esta estructura:
     {{
@@ -106,12 +109,12 @@ def redactar_con_ia(titulo_orig, resumen_orig, link):
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "responseMimeType": "application/json",
-            "maxOutputTokens": 1200
+            "maxOutputTokens": 1500
         }
     }).encode("utf-8")
 
     modelos = obtener_modelos_activos()
-    base = "https" + "://generativelanguage.googleapis.com/v1beta/"
+    base = "https://generativelanguage.googleapis.com/v1beta/"
     for modelo in modelos:
         url = f"{base}{modelo}:generateContent?key={GEMINI_API_KEY}"
         req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
@@ -141,14 +144,23 @@ def main():
         print("No se pudieron obtener noticias de los feeds.")
         return
 
+    publicadas_hoy = 0
+
     for titulo_orig, resumen_orig, link in candidatos:
-        # Comprobación estricta: si la URL o la primera palabra clave ya están publicadas, saltar
+        if publicadas_hoy >= NOTICIAS_POR_EJECUCION:
+            break
+
         palabra_clave = slugify(titulo_orig).split("-")[0]
         if link in historial_publicado or (len(palabra_clave) > 4 and palabra_clave in historial_publicado.lower()):
             continue
 
-        print(f"Procesando novedad: {titulo_orig}")
-        articulo = redactar_con_ia(titulo_orig, resumen_orig, link)
+        print(f"[{publicadas_hoy + 1}/{NOTICIAS_POR_EJECUCION}] Procesando novedad: {titulo_orig}")
+        try:
+            articulo = redactar_con_ia(titulo_orig, resumen_orig, link)
+        except Exception as e:
+            print(f"Error generando artículo: {e}")
+            continue
+
         slug_final = slugify(articulo["title"])
         ruta = os.path.join(carpeta, f"{slug_final}.md")
 
@@ -169,7 +181,7 @@ featured: false
 sourceUrl: "{link}"
 affiliateTitle: "Despliega tus agentes de IA 24/7 en la nube"
 affiliateDesc: "Ejecuta modelos open-source y flujos automatizados en servidores VPS de alto rendimiento."
-affiliateUrl: "https://tu-enlace-de-afiliado.com"
+affiliateUrl: "https://www.hostinger.es/vps-hosting"
 affiliateCta: "Ver servidores recomendados"
 ---
 
@@ -177,10 +189,17 @@ affiliateCta: "Ver servidores recomendados"
 """
         with open(ruta, "w", encoding="utf-8") as f:
             f.write(md_final)
-        print(f"✅ Publicada automáticamente: {ruta}")
-        return
 
-    print("Todas las novedades recientes ya estaban publicadas.")
+        # Actualizamos el historial en memoria para no repetir tema en la misma tanda
+        historial_publicado += f"\n{link}\n{titulo_orig}\n{md_final}"
+        publicadas_hoy += 1
+        print(f"✅ Publicada ({publicadas_hoy}/{NOTICIAS_POR_EJECUCION}): {ruta}")
+        time.sleep(3)
+
+    if publicadas_hoy == 0:
+        print("Todas las novedades recientes ya estaban publicadas.")
+    else:
+        print(f"🎉 Tanda completada: {publicadas_hoy} noticias nuevas generadas en una sola carga.")
 
 if __name__ == "__main__":
     main()
