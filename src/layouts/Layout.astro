@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import CookieBanner from '../components/CookieBanner.astro';
+import { ADSENSE_CLIENT, GOOGLE_SITE_VERIFICATION, BING_SITE_VERIFICATION } from '../config/adsense';
 
 interface Props {
   title: string;
@@ -13,7 +14,7 @@ interface Props {
 const {
   title,
   description = 'Noticias, análisis técnico y guías sobre Agentes de IA Autónomos, modelos locales (SLMs) y automatización.',
-  image = '/og-default.jpg',
+  image = '/og-default.png',
   publishDate,
   isArticle = false,
 } = Astro.props;
@@ -47,8 +48,12 @@ const schemaData = isArticle
     <link rel="canonical" href={canonicalURL} />
     <title>{title} | AgentesIA Lab</title>
     <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    {GOOGLE_SITE_VERIFICATION && <meta name="google-site-verification" content={GOOGLE_SITE_VERIFICATION} />}
+    {BING_SITE_VERIFICATION && <meta name="msvalidate.01" content={BING_SITE_VERIFICATION} />}
   
 
     <!-- Open Graph / Redes Sociales -->
@@ -60,6 +65,16 @@ const schemaData = isArticle
 
     <!-- Datos Estructurados SEO (Schema.org) -->
     <script type="application/ld+json" set:html={JSON.stringify(schemaData)} />
+
+    <!-- Google AdSense (se activa al configurar ADSENSE_PUB_ID en src/config/adsense.ts) -->
+    {ADSENSE_CLIENT && (
+      <script
+        is:inline
+        async
+        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+        crossorigin="anonymous"
+      ></script>
+    )}
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased flex flex-col min-h-screen">
     <!-- Cabecera -->

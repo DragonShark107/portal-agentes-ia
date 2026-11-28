@@ -14,10 +14,9 @@ FEEDS_RSS = [
     "https://huggingface.co/blog/feed.xml",
     "https://simonwillison.net/atom/everything/",
     "https://openai.com/news/rss.xml",
-    "https://blog.langchain.dev/rss/",
+    "https://www.langchain.com/blog/rss.xml",
     "https://ollama.com/blog/rss.xml",
-    "https://blog.google/technology/ai/rss/",
-    "https://www.anthropic.com/news/rss.xml"
+    "https://blog.google/technology/ai/rss/"
 ]
 
 def slugify(text):
@@ -40,8 +39,11 @@ def obtener_urls_publicadas(carpeta):
     return contenido_total
 
 def obtener_candidatos_rss():
-    candidatos = []
+    # Se alternan las fuentes (1 de cada feed por turno) para no llenar el lote con un solo blog
+    por_feed = []
     for url in FEEDS_RSS:
+        candidatos = []
+        por_feed.append(candidatos)
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             with urllib.request.urlopen(req, timeout=20) as response:
@@ -65,7 +67,12 @@ def obtener_candidatos_rss():
                     candidatos.append((titulo, resumen[:800], link))
         except Exception as e:
             print(f"Aviso leyendo {url}: {e}")
-    return candidatos
+    intercalados = []
+    for i in range(max((len(c) for c in por_feed), default=0)):
+        for c in por_feed:
+            if i < len(c):
+                intercalados.append(c[i])
+    return intercalados
 
 def obtener_modelos_activos():
     base = "https://generativelanguage.googleapis.com/v1beta/models"

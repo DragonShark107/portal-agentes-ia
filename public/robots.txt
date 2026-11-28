@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://labagentes.com/sitemap-index.xml
