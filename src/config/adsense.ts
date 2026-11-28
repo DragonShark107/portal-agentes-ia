@@ -3,7 +3,7 @@
 // 1) Al darte de alta en AdSense, pega aquí tu ID de editor (formato "pub-1234567890123456").
 //    Con solo esto se añade el script de verificación al <head> y se genera /ads.txt.
 // 2) Cuando Google apruebe la web, cambia ADSENSE_ACTIVO a true para mostrar los bloques <AdSlot>.
-export const ADSENSE_PUB_ID = '';
+export const ADSENSE_PUB_ID = 'pub-2897582230484369';
 
 export const ADSENSE_ACTIVO = false;
 
